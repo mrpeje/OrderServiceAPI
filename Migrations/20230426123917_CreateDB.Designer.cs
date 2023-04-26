@@ -12,8 +12,8 @@ using OrdersService.Context;
 namespace OrdersService.Migrations
 {
     [DbContext(typeof(OrdersServiceContext))]
-    [Migration("20230425125937_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20230426123917_CreateDB")]
+    partial class CreateDB
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,7 +25,7 @@ namespace OrdersService.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("OrdersService.Models.Order", b =>
+            modelBuilder.Entity("OrdersService.Context.Order", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -34,15 +34,16 @@ namespace OrdersService.Migrations
                     b.Property<DateTime>("Created")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
                     b.ToTable("Orders");
                 });
 
-            modelBuilder.Entity("OrdersService.Models.OrderLine", b =>
+            modelBuilder.Entity("OrdersService.Context.OrderLine", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -56,23 +57,7 @@ namespace OrdersService.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OrderId");
-
                     b.ToTable("OrderLines");
-                });
-
-            modelBuilder.Entity("OrdersService.Models.OrderLine", b =>
-                {
-                    b.HasOne("OrdersService.Models.Order", null)
-                        .WithMany("Lines")
-                        .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("OrdersService.Models.Order", b =>
-                {
-                    b.Navigation("Lines");
                 });
 #pragma warning restore 612, 618
         }

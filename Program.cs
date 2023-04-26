@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using OrdersService.Business_Layer;
 using OrdersService.Context;
 using OrdersService.DB_Access;
+using OrdersService.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,7 +17,8 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<OrdersServiceContext>();
 builder.Services.AddScoped<IDB_Provider, DB_Provider>();
-var app = builder.Build();
+builder.Services.AddScoped<IOrderService, OrderService>(); 
+ var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
