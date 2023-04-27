@@ -4,7 +4,7 @@
     {
         New = 0,
         Paid = 1,
-        SentForDelivery = 2,
+        InDelivery = 2,
         Delivered = 3,
         Completed = 4
     }

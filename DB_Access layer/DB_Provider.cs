@@ -66,6 +66,8 @@ namespace OrdersService.DB_Access
                 // Update order
                 var dbOrder = _context.Entry(order);
                 dbOrder.State = EntityState.Modified;
+                dbOrder.Property(x => x.Created).IsModified = false;
+                dbOrder.Property(x => x.Id).IsModified = false;
                 _context.SaveChanges();
             }
             catch (Exception ex)

@@ -1,16 +1,19 @@
-﻿using OrdersService.Context;
+﻿using OrdersService.Business_layer.Validator;
+using OrdersService.Context;
 using OrdersService.DB_Access;
 using OrdersService.Models;
 using System.Net;
 
-namespace OrdersService.Business_Layer
+namespace OrdersService.Business_layer
 {
     public class OrderService : IOrderService
     {
         private readonly IDB_Provider _dbProvider;
-        public OrderService(IDB_Provider dbProvider)
+        private readonly IOrderValidator _orderValidator;
+        public OrderService(IDB_Provider dbProvider, IOrderValidator orderValidator)
         {
             _dbProvider = dbProvider;
+            _orderValidator = orderValidator;
         }
         public OrderWithLines GetOrderData(Guid orderId)
         {
@@ -37,10 +40,11 @@ namespace OrdersService.Business_Layer
         public OrderWithLines CreateOrder(NewOrder orderData)
         {
             // Validate order data
-            bool validated = true;
-
+            bool validated = _orderValidator.ValidateOrderLines(orderData.Lines);
+            
             if (validated)
             {
+                // Create Order
                 var order = new Order
                 {
                     Id = orderData.Id,
@@ -50,6 +54,7 @@ namespace OrdersService.Business_Layer
                 var orderCreationResult = _dbProvider.CreateOrder(order);
                 if (orderCreationResult == OperationStatus.Success)
                 {
+                    // Create OrderLines
                     foreach (var item in orderData.Lines)
                     {
                         var newLine = new OrderLine 
@@ -70,63 +75,94 @@ namespace OrdersService.Business_Layer
         }
         public OrderWithLines UpdateOrderData(OrderWithLines orderData)
         {
-            var order = new Order 
-            { 
-                Id = orderData.Id,
-                Status = orderData.Status,
-                Created = orderData.Created
-            };
-            var userLines = orderData.Lines;
-            _dbProvider.UpdateOrder(order);
-            // Update lines
-            foreach(var usrLine in userLines)
+            // Validate order data
+            var dbOrder = GetOrderData(orderData.Id);
+            if (dbOrder == null)
             {
-                var line = new OrderLine
-                {
-                    Id = usrLine.Id,
-                    qty = usrLine.qty,
-                    OrderId = order.Id
-                };
-                var status = _dbProvider.UpdateOrderLine(line);
-                if(status == OperationStatus.NotFound)
-                {
-                    _dbProvider.CreateOrderLine(line);
-                }
+                return null;
             }
-            // Delete lines
-            var dbLines = _dbProvider.GetOrderLinesByOrderId(order.Id);
-            var deletedLines = dbLines.Where(dbItem => userLines.All(userItem => dbItem.Id != userItem.Id)).ToList();
-            foreach (var line in deletedLines)
-            {
-                _dbProvider.DeleteOrderLine(line.Id);
-            }
+            bool canEdit = _orderValidator.CanEditOrder(dbOrder);
+            bool validated = _orderValidator.ValidateOrderLines(orderData.Lines);
 
-            return GetOrderData(order.Id);
+            if (validated && canEdit)
+            {
+                // Update Order
+                var order = new Order
+                {
+                    Id = orderData.Id,
+                    Status = orderData.Status,
+                    Created = orderData.Created
+                };
+                var userLines = orderData.Lines;
+                _dbProvider.UpdateOrder(order);
+                // Update lines
+                foreach (var usrLine in userLines)
+                {
+                    var line = new OrderLine
+                    {
+                        Id = usrLine.Id,
+                        qty = usrLine.qty,
+                        OrderId = order.Id
+                    };
+                    var status = _dbProvider.UpdateOrderLine(line);
+                    if (status == OperationStatus.NotFound)
+                    {
+                        _dbProvider.CreateOrderLine(line);
+                    }
+                }
+                // Delete OrderLines
+                var dbLines = _dbProvider.GetOrderLinesByOrderId(order.Id);
+                var deletedLines = dbLines.Where(dbItem => userLines.All(userItem => dbItem.Id != userItem.Id)).ToList();
+                foreach (var line in deletedLines)
+                {
+                    _dbProvider.DeleteOrderLine(line.Id);
+                }
+
+                return GetOrderData(order.Id);
+            }
+            else
+            {
+                return new OrderWithLines();
+            }
         }
         public HttpStatusCode DeleteOrder(Guid orderId)
         {
-            
-            var newOrderLines = _dbProvider.GetOrderLinesByOrderId(orderId);
-            foreach (var line in newOrderLines)
+            // Validate order
+            var order = GetOrderData(orderId);
+            if(order == null)
             {
-                _dbProvider.DeleteOrderLine(line.Id);
+                return HttpStatusCode.BadRequest;
             }
-
-            var result = _dbProvider.DeleteOrder(orderId);
-            HttpStatusCode returnValue = HttpStatusCode.NoContent;
-            switch (result)
+            bool canDeleted = _orderValidator.CanDeleteOrder(order);
+            if (canDeleted)
             {
-                case OperationStatus.Success:
-                    returnValue = HttpStatusCode.OK;
-                    break;
-                case OperationStatus.NotFound:
-                    returnValue = HttpStatusCode.NotFound;
-                    break;
-                case OperationStatus.Error:
-                    returnValue = HttpStatusCode.BadRequest;
-                    break;
+                // Delete OrderLines
+                var newOrderLines = _dbProvider.GetOrderLinesByOrderId(orderId);
+                foreach (var line in newOrderLines)
+                {
+                    _dbProvider.DeleteOrderLine(line.Id);
+                }
+                // Delete Order
+                var result = _dbProvider.DeleteOrder(orderId);
+                HttpStatusCode returnValue = HttpStatusCode.NoContent;
+                switch (result)
+                {
+                    case OperationStatus.Success:
+                        returnValue = HttpStatusCode.OK;
+                        break;
+                    case OperationStatus.NotFound:
+                        returnValue = HttpStatusCode.NotFound;
+                        break;
+                    case OperationStatus.Error:
+                        returnValue = HttpStatusCode.BadRequest;
+                        break;
+                }
+                return returnValue;
             }
-            return returnValue;
+            else
+            {
+                return HttpStatusCode.BadRequest;
+            }
         }
     }
 }

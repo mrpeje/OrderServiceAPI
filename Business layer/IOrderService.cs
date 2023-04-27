@@ -1,7 +1,7 @@
 ﻿using OrdersService.Models;
 using System.Net;
 
-namespace OrdersService.Business_Layer
+namespace OrdersService.Business_layer
 {
     public interface IOrderService
     {
