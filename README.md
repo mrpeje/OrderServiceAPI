@@ -9,4 +9,5 @@ Asp.net Web API with DB on Postgres.
 - Build project
 - Run OrdersService\bin\Debug|Release\net6.0\OrdersService.exe
 
-example of request URL https://localhost:7125/api/orders
+example of request URL:
+https://localhost:5001/api/orders/
