@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using OrdersService.Business_layer;
+using OrdersService.Context;
 using OrdersService.Models;
 using System.Net;
 
@@ -16,10 +17,9 @@ namespace OrdersService.Controllers
         }
 
         [HttpGet("orders/{id}")]
-        public OrderWithLines GetOrder(Guid id)
+        public OrderModel GetOrder(Guid id)
         {
-            var order = _orderService.GetOrderData(id);
-            return order;
+            return _orderService.GetOrderData(id);
         }
         [HttpDelete("orders/{id}")]
         public HttpStatusCode DeleteOrderItem(Guid id)
@@ -28,13 +28,13 @@ namespace OrdersService.Controllers
             
         }
         [HttpPut("orders")]
-        public OrderWithLines UpdateOrder(OrderWithLines order)
+        public OrderModel UpdateOrder(OrderModel order)
         {
             var editedOrder = _orderService.UpdateOrderData(order);
             return editedOrder;
         }
         [HttpPost("orders")]
-        public OrderWithLines CreateOrder(NewOrder order)
+        public OrderModel CreateOrder(NewOrder order)
         {
             var newOrder = _orderService.CreateOrder(order);
             return newOrder;

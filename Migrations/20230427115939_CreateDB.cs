@@ -12,6 +12,19 @@ namespace OrdersService.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
+                name: "Orders",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Status = table.Column<string>(type: "text", nullable: false),
+                    Created = table.Column<DateTime>(type: "timestamp", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Orders", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "OrderLines",
                 columns: table => new
                 {
@@ -22,20 +35,18 @@ namespace OrdersService.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_OrderLines", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_OrderLines_Orders_OrderId",
+                        column: x => x.OrderId,
+                        principalTable: "Orders",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.CreateTable(
-                name: "Orders",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    Status = table.Column<string>(type: "text", nullable: false),
-                    Created = table.Column<DateTime>(type: "timestamp without time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Orders", x => x.Id);
-                });
+            migrationBuilder.CreateIndex(
+                name: "IX_OrderLines_OrderId",
+                table: "OrderLines",
+                column: "OrderId");
         }
 
         /// <inheritdoc />

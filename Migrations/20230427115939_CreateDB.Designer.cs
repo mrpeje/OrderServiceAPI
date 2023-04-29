@@ -12,7 +12,7 @@ using OrdersService.Context;
 namespace OrdersService.Migrations
 {
     [DbContext(typeof(OrdersServiceContext))]
-    [Migration("20230426123917_CreateDB")]
+    [Migration("20230427115939_CreateDB")]
     partial class CreateDB
     {
         /// <inheritdoc />
@@ -57,7 +57,23 @@ namespace OrdersService.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("OrderId");
+
                     b.ToTable("OrderLines");
+                });
+
+            modelBuilder.Entity("OrdersService.Context.OrderLine", b =>
+                {
+                    b.HasOne("OrdersService.Context.Order", null)
+                        .WithMany("Lines")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("OrdersService.Context.Order", b =>
+                {
+                    b.Navigation("Lines");
                 });
 #pragma warning restore 612, 618
         }
