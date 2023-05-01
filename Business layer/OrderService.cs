@@ -1,8 +1,7 @@
-﻿using OrdersService.Business_layer.Validator;
-using OrdersService.Context;
+﻿using OrdersService.Context;
 using OrdersService.DB_Access;
+using OrdersService.Interfaces;
 using OrdersService.Models;
-using System.Net;
 
 namespace OrdersService.Business_layer
 {

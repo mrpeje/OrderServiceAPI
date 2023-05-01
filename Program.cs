@@ -3,6 +3,7 @@ using OrdersService.Business_layer;
 using OrdersService.Context;
 using OrdersService.DB_Access;
 using OrdersService.Business_layer.Validator;
+using OrdersService.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 

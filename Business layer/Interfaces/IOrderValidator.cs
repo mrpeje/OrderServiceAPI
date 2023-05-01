@@ -1,6 +1,7 @@
-﻿using OrdersService.Context;
+﻿using OrdersService.Business_layer.Validator;
+using OrdersService.Context;
 
-namespace OrdersService.Business_layer.Validator
+namespace OrdersService.Interfaces
 {
     public interface IOrderValidator 
     {

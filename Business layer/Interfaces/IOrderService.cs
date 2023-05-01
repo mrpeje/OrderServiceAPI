@@ -1,8 +1,8 @@
-﻿using OrdersService.Business_layer.Validator;
+﻿using OrdersService.Business_layer;
 using OrdersService.Models;
-using System.Net;
 
-namespace OrdersService.Business_layer
+
+namespace OrdersService.Interfaces
 {
     public interface IOrderService
     {

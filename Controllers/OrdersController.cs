@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using OrdersService.Business_layer;
-using OrdersService.Context;
+using OrdersService.Interfaces;
 using OrdersService.Models;
-using System.Net;
 
 namespace OrdersService.Controllers
 {
