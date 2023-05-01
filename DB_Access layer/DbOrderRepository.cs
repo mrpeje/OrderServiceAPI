@@ -4,10 +4,10 @@ using OrdersService.Models;
 
 namespace OrdersService.DB_Access
 {
-    public class DB_Provider : IDB_Provider
+    public class DbOrderRepository : IOrderRepository
     {
         private readonly OrdersServiceContext _context;
-        public DB_Provider(OrdersServiceContext context)
+        public DbOrderRepository(OrdersServiceContext context)
         {
             _context = context;
         }

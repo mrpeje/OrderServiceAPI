@@ -16,7 +16,7 @@ builder.Services.AddSwaggerGen();
 // Add dbContext to di container
 
 builder.Services.AddDbContext<OrdersServiceContext>();
-builder.Services.AddScoped<IDB_Provider, DB_Provider>();
+builder.Services.AddScoped<IOrderRepository, DbOrderRepository>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IOrderValidator, OrderValidator>();
 var app = builder.Build();

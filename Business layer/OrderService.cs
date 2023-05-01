@@ -8,9 +8,9 @@ namespace OrdersService.Business_layer
 {
     public class OrderService : IOrderService
     {
-        private readonly IDB_Provider _dbProvider;
+        private readonly IOrderRepository _dbProvider;
         private readonly IOrderValidator _orderValidator;
-        public OrderService(IDB_Provider dbProvider, IOrderValidator orderValidator)
+        public OrderService(IOrderRepository dbProvider, IOrderValidator orderValidator)
         {
             _dbProvider = dbProvider;
             _orderValidator = orderValidator;

@@ -3,7 +3,7 @@ using OrdersService.Models;
 
 namespace OrdersService.DB_Access
 {
-    public interface IDB_Provider
+    public interface IOrderRepository
     {
         public OperationStatus CreateOrder(Order order);
         public OperationStatus UpdateOrder(Order order);
