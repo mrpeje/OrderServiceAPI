@@ -18,7 +18,7 @@ namespace OrdersService.Business_layer
         public OrderModel GetOrderData(Guid orderId)
         {
             var order = _dbProvider.GetOrderById(orderId);
-            if(order == null)
+            if (order == null)
                 return null;
             var dtoLines = new List<OrderLineModel>();
             foreach (var line in order.Lines)
@@ -55,11 +55,11 @@ namespace OrdersService.Business_layer
             // Create OrderLines
             foreach (var item in orderData.Lines)
             {
-                var newLine = new OrderLine 
-                {   
-                    Id = item.Id, 
-                    qty = item.qty, 
-                    OrderId = orderData.Id 
+                var newLine = new OrderLine
+                {
+                    Id = item.Id,
+                    qty = item.qty,
+                    OrderId = orderData.Id
                 };
                 lines.Add(newLine);
             }
@@ -77,13 +77,13 @@ namespace OrdersService.Business_layer
             {
                 result.ErrorMessage = $"DB Error while creating new order {order.Id}";
             }
-            return result;                        
+            return result;
         }
         public OperationResult UpdateOrderData(Guid orderId, EditOrderModel orderData)
         {
             // Validate order 
-            var result = new OperationResult(); 
-            var linesToWrite = new List<OrderLine>();
+            var result = new OperationResult();
+            List<OrderLine>? linesToWrite;
             var dbOrder = _dbProvider.GetOrderById(orderId);
             if (dbOrder == null)
             {
@@ -107,7 +107,7 @@ namespace OrdersService.Business_layer
             // Validate order lines
             var isOrderLinesEdited = _orderValidator.isEdited(userLines, dbOrder.Lines.ToList());
             if (isOrderLinesEdited.Validated)
-            {           
+            {
                 var canEdit = _orderValidator.CanEditOrderLines(dbOrder);
                 if (!canEdit.Validated)
                 {
@@ -115,8 +115,8 @@ namespace OrdersService.Business_layer
                     result.ErrorMessage = canEdit.ErrorMessage;
                     return result;
                 }
-                            
-                var orderLinesValidator = _orderValidator.ValidateOrderLines(orderData.Lines, orderId);           
+
+                var orderLinesValidator = _orderValidator.ValidateOrderLines(orderData.Lines, orderId);
                 if (!orderLinesValidator.Validated)
                 {
                     result.Status = OperationStatus.Error;
@@ -130,9 +130,9 @@ namespace OrdersService.Business_layer
                 // If changed only status use DB lines to avoid update
                 linesToWrite = dbOrder.Lines.ToList();
             }
-            
+
             var order = new Order
-            { 
+            {
                 Id = orderId,
                 Status = orderData.Status.ToString(),
                 Created = dbOrder.Created,
@@ -144,7 +144,7 @@ namespace OrdersService.Business_layer
             {
                 result.ErrorMessage = $"DB Error while updating order {orderId}";
             }
-            return result;                      
+            return result;
         }
         public OperationResult DeleteOrder(Guid orderId)
         {
@@ -152,9 +152,9 @@ namespace OrdersService.Business_layer
             var result = new OperationResult();
 
             var order = _dbProvider.GetOrderById(orderId);
-            if(order == null)
+            if (order == null)
             {
-                result.Status=OperationStatus.NotFound;
+                result.Status = OperationStatus.NotFound;
                 result.ErrorMessage = $"Order {orderId} not found";
                 return result;
             }
@@ -173,7 +173,7 @@ namespace OrdersService.Business_layer
             {
                 result.ErrorMessage = $"DB Error while deleting order {orderId}";
             }
-            return result;         
+            return result;
         }
     }
     public class OperationResult
