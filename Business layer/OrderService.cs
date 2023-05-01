@@ -44,7 +44,7 @@ namespace OrdersService.Business_layer
             var result = new OperationResult();
             var orderLinesValidator = _orderValidator.ValidateOrderLines(orderData.Lines, orderData.Id);
 
-            if (!orderLinesValidator.Validated)
+            if (orderLinesValidator.Validated != Validator.ValidationResult.Valid)
             {
                 result.Status = OperationStatus.Error;
                 result.ErrorMessage = orderLinesValidator.ErrorMessage;
@@ -106,10 +106,10 @@ namespace OrdersService.Business_layer
 
             // Validate order lines
             var isOrderLinesEdited = _orderValidator.isEdited(userLines, dbOrder.Lines.ToList());
-            if (isOrderLinesEdited.Validated)
+            if (isOrderLinesEdited.Validated == Validator.ValidationResult.Valid)
             {
                 var canEdit = _orderValidator.CanEditOrderLines(dbOrder);
-                if (!canEdit.Validated)
+                if (canEdit.Validated != Validator.ValidationResult.Valid)
                 {
                     result.Status = OperationStatus.Error;
                     result.ErrorMessage = canEdit.ErrorMessage;
@@ -117,7 +117,7 @@ namespace OrdersService.Business_layer
                 }
 
                 var orderLinesValidator = _orderValidator.ValidateOrderLines(orderData.Lines, orderId);
-                if (!orderLinesValidator.Validated)
+                if (orderLinesValidator.Validated != Validator.ValidationResult.Valid)
                 {
                     result.Status = OperationStatus.Error;
                     result.ErrorMessage = orderLinesValidator.ErrorMessage;
@@ -160,7 +160,7 @@ namespace OrdersService.Business_layer
             }
 
             var canDeleted = _orderValidator.CanDeleteOrder(order);
-            if (!canDeleted.Validated)
+            if (canDeleted.Validated != Validator.ValidationResult.Valid)
             {
                 result.Status = OperationStatus.Error;
                 result.ErrorMessage = canDeleted.ErrorMessage;
