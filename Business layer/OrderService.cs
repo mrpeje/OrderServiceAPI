@@ -1,4 +1,5 @@
-﻿using OrdersService.Context;
+﻿using OrdersService.Business_layer.Validator;
+using OrdersService.Context;
 using OrdersService.DB_Access;
 using OrdersService.Interfaces;
 using OrdersService.Models;
@@ -38,13 +39,14 @@ namespace OrdersService.Business_layer
                 Lines = dtoLines
             };
         }
+
         public OperationResult CreateOrder(NewOrder orderData)
         {
             // Validate order data
             var result = new OperationResult();
             var orderLinesValidator = _orderValidator.ValidateOrderLines(orderData.Lines, orderData.Id);
 
-            if (!orderLinesValidator.Validated)
+            if (orderLinesValidator.Validated == ValidationResult.Invalid)
             {
                 result.Status = OperationStatus.Error;
                 result.ErrorMessage = orderLinesValidator.ErrorMessage;
@@ -82,8 +84,8 @@ namespace OrdersService.Business_layer
         public OperationResult UpdateOrderData(Guid orderId, EditOrderModel orderData)
         {
             // Validate order 
-            var result = new OperationResult(); 
-            var linesToWrite = new List<OrderLine>();
+            var result = new OperationResult();
+            List<OrderLine>? linesToWrite;
             var dbOrder = _dbProvider.GetOrderById(orderId);
             if (dbOrder == null)
             {
@@ -106,18 +108,18 @@ namespace OrdersService.Business_layer
 
             // Validate order lines
             var isOrderLinesEdited = _orderValidator.isEdited(userLines, dbOrder.Lines.ToList());
-            if (isOrderLinesEdited.Validated)
-            {           
+            if (isOrderLinesEdited.Validated == ValidationResult.UnequalLines)
+            {
                 var canEdit = _orderValidator.CanEditOrderLines(dbOrder);
-                if (!canEdit.Validated)
+                if (canEdit.Validated != ValidationResult.Valid)
                 {
                     result.Status = OperationStatus.Error;
                     result.ErrorMessage = canEdit.ErrorMessage;
                     return result;
                 }
-                            
-                var orderLinesValidator = _orderValidator.ValidateOrderLines(orderData.Lines, orderId);           
-                if (!orderLinesValidator.Validated)
+
+                var orderLinesValidator = _orderValidator.ValidateOrderLines(orderData.Lines, orderId);
+                if (orderLinesValidator.Validated != ValidationResult.Valid)
                 {
                     result.Status = OperationStatus.Error;
                     result.ErrorMessage = orderLinesValidator.ErrorMessage;
@@ -130,9 +132,9 @@ namespace OrdersService.Business_layer
                 // If changed only status use DB lines to avoid update
                 linesToWrite = dbOrder.Lines.ToList();
             }
-            
+
             var order = new Order
-            { 
+            {
                 Id = orderId,
                 Status = orderData.Status.ToString(),
                 Created = dbOrder.Created,
@@ -144,7 +146,7 @@ namespace OrdersService.Business_layer
             {
                 result.ErrorMessage = $"DB Error while updating order {orderId}";
             }
-            return result;                      
+            return result;
         }
         public OperationResult DeleteOrder(Guid orderId)
         {
@@ -160,7 +162,7 @@ namespace OrdersService.Business_layer
             }
 
             var canDeleted = _orderValidator.CanDeleteOrder(order);
-            if (!canDeleted.Validated)
+            if (canDeleted.Validated == ValidationResult.Invalid)
             {
                 result.Status = OperationStatus.Error;
                 result.ErrorMessage = canDeleted.ErrorMessage;
@@ -180,5 +182,9 @@ namespace OrdersService.Business_layer
     {
         public OperationStatus Status { get; set; }
         public string ErrorMessage { get; set; }
+        public OperationResult()
+        {
+            ErrorMessage = string.Empty;
+        }
     }
 }
