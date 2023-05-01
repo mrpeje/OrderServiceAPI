@@ -27,10 +27,10 @@ namespace OrdersService.Controllers
             return _orderService.DeleteOrder(id);
             
         }
-        [HttpPut("orders")]
-        public OrderModel UpdateOrder(OrderModel order)
+        [HttpPut("orders/{id}")]
+        public OrderModel UpdateOrder([FromRoute] Guid id, EditOrderModel orderData)
         {
-            var editedOrder = _orderService.UpdateOrderData(order);
+            var editedOrder = _orderService.UpdateOrderData(id, orderData);
             return editedOrder;
         }
         [HttpPost("orders")]

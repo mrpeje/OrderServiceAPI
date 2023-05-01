@@ -8,7 +8,7 @@ namespace OrdersService.Business_layer
     {
         public OrderModel GetOrderData(Guid orderId);
         public OrderModel CreateOrder(NewOrder order);
-        public OrderModel UpdateOrderData(OrderModel order);
+        public OrderModel UpdateOrderData(Guid orderID, EditOrderModel order);
         public HttpStatusCode DeleteOrder(Guid orderId);
     }
 }

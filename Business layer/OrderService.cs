@@ -73,10 +73,10 @@ namespace OrdersService.Business_layer
             }
             return null;           
         }
-        public OrderModel UpdateOrderData(OrderModel orderData)
+        public OrderModel UpdateOrderData(Guid orderId, EditOrderModel orderData)
         {
             // Validate order data
-            var dbOrder = _dbProvider.GetOrderById(orderData.Id);
+            var dbOrder = _dbProvider.GetOrderById(orderId);
             if (dbOrder == null)
             {
                 return null;
@@ -94,14 +94,14 @@ namespace OrdersService.Business_layer
                     {
                         Id = line.Id,
                         qty = line.qty,
-                        OrderId = orderData.Id
+                        OrderId = orderId
                     });
                 }
                 var order = new Order
                 { 
-                    Id = orderData.Id,
+                    Id = orderId,
                     Status = orderData.Status.ToString(),
-                    Created = orderData.Created,
+                    Created = dbOrder.Created,
                     Lines = userLines 
                 };
                 var orderUpdateResult =_dbProvider.UpdateOrder(order);
