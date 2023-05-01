@@ -19,6 +19,8 @@ namespace OrdersService.Business_layer
         public OrderModel GetOrderData(Guid orderId)
         {
             var order = _dbProvider.GetOrderById(orderId);
+            if(order == null)
+                return null;
             var dtoLines = new List<OrderLineModel>();
             foreach (var line in order.Lines)
             {
@@ -37,113 +39,147 @@ namespace OrdersService.Business_layer
                 Lines = dtoLines
             };
         }
-        public OrderModel CreateOrder(NewOrder orderData)
+        public OperationResult CreateOrder(NewOrder orderData)
         {
             // Validate order data
-            bool validated = _orderValidator.ValidateOrderLines(orderData.Lines);
-            var lines = new List<OrderLine>();
-            if (validated)
-            {
-               
-                // Create OrderLines
-                foreach (var item in orderData.Lines)
-                {
-                    var newLine = new OrderLine 
-                    {   
-                        Id = item.Id, 
-                        qty = item.qty, 
-                        OrderId = orderData.Id 
-                    };
-                    lines.Add(newLine);
-                }
-                // Create Order
-                var order = new Order
-                {
-                    Id = orderData.Id,
-                    Created = DateTime.UtcNow,
-                    Status = OrderStatus.New.ToString(),
-                    Lines = lines
-                };
+            var result = new OperationResult();
+            var orderLinesValidator = _orderValidator.ValidateOrderLines(orderData.Lines, orderData.Id);
 
-                var orderCreationResult = _dbProvider.CreateOrder(order);
-                if(orderCreationResult == OperationStatus.Success)
-                {
-                    return GetOrderData(order.Id);
-                }                
+            if (!orderLinesValidator.Validated)
+            {
+                result.Status = OperationStatus.Error;
+                result.ErrorMessage = orderLinesValidator.ErrorMessage;
+                return result;
             }
-            return null;           
+
+            var lines = new List<OrderLine>();
+            // Create OrderLines
+            foreach (var item in orderData.Lines)
+            {
+                var newLine = new OrderLine 
+                {   
+                    Id = item.Id, 
+                    qty = item.qty, 
+                    OrderId = orderData.Id 
+                };
+                lines.Add(newLine);
+            }
+            // Create Order
+            var order = new Order
+            {
+                Id = orderData.Id,
+                Created = DateTime.UtcNow,
+                Status = OrderStatus.New.ToString(),
+                Lines = lines
+            };
+
+            result.Status = _dbProvider.CreateOrder(order);
+            if (result.Status != OperationStatus.Success)
+            {
+                result.ErrorMessage = $"DB Error while creating new order {order.Id}";
+            }
+            return result;                        
         }
-        public OrderModel UpdateOrderData(Guid orderId, EditOrderModel orderData)
+        public OperationResult UpdateOrderData(Guid orderId, EditOrderModel orderData)
         {
-            // Validate order data
+            // Validate order 
+            var result = new OperationResult(); 
+            var linesToWrite = new List<OrderLine>();
             var dbOrder = _dbProvider.GetOrderById(orderId);
             if (dbOrder == null)
             {
-                return null;
+                result.Status = OperationStatus.NotFound;
+                result.ErrorMessage = $"Order {orderId} not found";
+                return result;
             }
-            bool canEdit = _orderValidator.CanEditOrder(dbOrder);
-            bool validated = _orderValidator.ValidateOrderLines(orderData.Lines);
 
-            if (validated && canEdit)
+            // Prepare dao    
+            var userLines = new List<OrderLine>();
+            foreach (var line in orderData.Lines)
             {
-                // Update Order
-                var userLines = new List<OrderLine>();
-                foreach(var line in orderData.Lines)
+                userLines.Add(new OrderLine
                 {
-                    userLines.Add(new OrderLine
-                    {
-                        Id = line.Id,
-                        qty = line.qty,
-                        OrderId = orderId
-                    });
-                }
-                var order = new Order
-                { 
-                    Id = orderId,
-                    Status = orderData.Status.ToString(),
-                    Created = dbOrder.Created,
-                    Lines = userLines 
-                };
-                var orderUpdateResult =_dbProvider.UpdateOrder(order);
-                if (orderUpdateResult == OperationStatus.Success)
-                {
-                    return GetOrderData(order.Id);
-                }
+                    Id = line.Id,
+                    qty = line.qty,
+                    OrderId = orderId
+                });
             }
-            return null;           
-        }
-        public HttpStatusCode DeleteOrder(Guid orderId)
-        {
-            // Validate order
-            var order = _dbProvider.GetOrderById(orderId);
-            if(order == null)
-            {
-                return HttpStatusCode.BadRequest;
-            }
-            bool canDeleted = _orderValidator.CanDeleteOrder(order);
-            if (canDeleted)
-            {
-                // Delete Order
-                var result = _dbProvider.DeleteOrder(orderId);
-                HttpStatusCode returnValue = HttpStatusCode.NoContent;
-                switch (result)
+
+            // Validate order lines
+            var isOrderLinesEdited = _orderValidator.isEdited(userLines, dbOrder.Lines.ToList());
+            if (isOrderLinesEdited.Validated)
+            {           
+                var canEdit = _orderValidator.CanEditOrderLines(dbOrder);
+                if (!canEdit.Validated)
                 {
-                    case OperationStatus.Success:
-                        returnValue = HttpStatusCode.OK;
-                        break;
-                    case OperationStatus.NotFound:
-                        returnValue = HttpStatusCode.NotFound;
-                        break;
-                    case OperationStatus.Error:
-                        returnValue = HttpStatusCode.BadRequest;
-                        break;
+                    result.Status = OperationStatus.Error;
+                    result.ErrorMessage = canEdit.ErrorMessage;
+                    return result;
                 }
-                return returnValue;
+                            
+                var orderLinesValidator = _orderValidator.ValidateOrderLines(orderData.Lines, orderId);           
+                if (!orderLinesValidator.Validated)
+                {
+                    result.Status = OperationStatus.Error;
+                    result.ErrorMessage = orderLinesValidator.ErrorMessage;
+                    return result;
+                }
+                linesToWrite = userLines;
             }
             else
             {
-                return HttpStatusCode.BadRequest;
+                // If changed only status use DB lines to avoid update
+                linesToWrite = dbOrder.Lines.ToList();
             }
+            
+            var order = new Order
+            { 
+                Id = orderId,
+                Status = orderData.Status.ToString(),
+                Created = dbOrder.Created,
+                Lines = linesToWrite
+            };
+            // Update Order
+            result.Status = _dbProvider.UpdateOrder(order);
+            if (result.Status != OperationStatus.Success)
+            {
+                result.ErrorMessage = $"DB Error while updating order {orderId}";
+            }
+            return result;                      
         }
+        public OperationResult DeleteOrder(Guid orderId)
+        {
+            // Validate order
+            var result = new OperationResult();
+
+            var order = _dbProvider.GetOrderById(orderId);
+            if(order == null)
+            {
+                result.Status=OperationStatus.NotFound;
+                result.ErrorMessage = $"Order {orderId} not found";
+                return result;
+            }
+
+            var canDeleted = _orderValidator.CanDeleteOrder(order);
+            if (!canDeleted.Validated)
+            {
+                result.Status = OperationStatus.Error;
+                result.ErrorMessage = canDeleted.ErrorMessage;
+                return result;
+            }
+
+            // Delete Order
+            result.Status = _dbProvider.DeleteOrder(orderId);
+            if (result.Status != OperationStatus.Success)
+            {
+                result.ErrorMessage = $"DB Error while deleting order {orderId}";
+            }
+            return result;         
+        }
+    }
+    public class OperationResult
+    {
+        public OperationStatus Status { get; set; }
+        public string ErrorMessage { get; set; }
     }
 }

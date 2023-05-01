@@ -10,8 +10,8 @@
     }
     public enum OperationStatus
     {
-        Success = 0,
-        Error = 1,
-        NotFound = 2
+        Success = 200,
+        Error = 400,
+        NotFound = 404
     }
 }

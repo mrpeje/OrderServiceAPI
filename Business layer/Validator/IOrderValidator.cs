@@ -1,12 +1,12 @@
 ﻿using OrdersService.Context;
-using OrdersService.Models;
 
 namespace OrdersService.Business_layer.Validator
 {
     public interface IOrderValidator 
     {
-        public bool CanEditOrder(Order orderData);
-        public bool CanDeleteOrder(Order orderData);
-        public bool ValidateOrderLines(List<OrderLineModel> lines);
+        public ValidatorResult CanEditOrderLines(Order orderData);
+        public ValidatorResult CanDeleteOrder(Order orderData);
+        public ValidatorResult ValidateOrderLines(List<OrderLineModel> lines, Guid orderId);
+        public ValidatorResult isEdited(List<OrderLine> userLines, List<OrderLine> dbLines);
     }
 }

@@ -17,27 +17,45 @@ namespace OrdersService.Controllers
         }
 
         [HttpGet("orders/{id}")]
-        public OrderModel GetOrder(Guid id)
+        public ActionResult<OrderModel> GetOrder(Guid id)
         {
-            return _orderService.GetOrderData(id);
+            var order = _orderService.GetOrderData(id);
+            if(order == null)
+                return StatusCode(404, "Not found");
+            return order;
         }
         [HttpDelete("orders/{id}")]
-        public HttpStatusCode DeleteOrderItem(Guid id)
+        public ActionResult DeleteOrderItem(Guid id)
         {
-            return _orderService.DeleteOrder(id);
-            
+            var operationResult = _orderService.DeleteOrder(id);
+            return StatusCode((int)operationResult.Status, operationResult.ErrorMessage);          
         }
         [HttpPut("orders/{id}")]
-        public OrderModel UpdateOrder([FromRoute] Guid id, EditOrderModel orderData)
+        public ActionResult<OrderModel> UpdateOrder([FromRoute] Guid id, EditOrderModel orderData)
         {
-            var editedOrder = _orderService.UpdateOrderData(id, orderData);
-            return editedOrder;
+            var operationResult = _orderService.UpdateOrderData(id, orderData);
+            if(operationResult.Status == OperationStatus.Success)
+            {
+                return _orderService.GetOrderData(id);
+            }
+            else
+            {
+                return StatusCode((int)operationResult.Status, operationResult.ErrorMessage);
+            }           
         }
         [HttpPost("orders")]
-        public OrderModel CreateOrder(NewOrder order)
+        public ActionResult<OrderModel> CreateOrder(NewOrder order)
         {
-            var newOrder = _orderService.CreateOrder(order);
-            return newOrder;
+            var operationResult = _orderService.CreateOrder(order);
+
+            if (operationResult.Status == OperationStatus.Success)
+            {
+                return _orderService.GetOrderData(order.Id);
+            }
+            else
+            {
+                return StatusCode((int)operationResult.Status, operationResult.ErrorMessage);
+            }
         }
     }
 }
