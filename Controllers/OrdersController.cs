@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Orders.Domain;
 using OrdersService.Interfaces;
 using OrdersService.Models;
 
