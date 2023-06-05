@@ -1,52 +1,55 @@
-﻿using OrdersService.Business_layer.Validator;
+﻿using Orders.Domain;
+using OrdersService.Business_layer.Validator;
 using OrdersService.Context;
 using OrdersService.DB_Access;
 using OrdersService.Interfaces;
-using Orders.Domain;
-using Orders.Domain.Models;
+using OrdersService.Models;
 
 namespace OrdersService.Business_layer
 {
     public class OrderService : IOrderService
     {
-        private readonly IOrderRepository _dbProvider;
+        private readonly IOrderRepository _orderRepository;
         private readonly IOrderValidator _orderValidator;
+
+        Order _order { get; set; }
         public OrderService(IOrderRepository dbProvider, IOrderValidator orderValidator)
         {
-            _dbProvider = dbProvider;
+            _orderRepository = dbProvider;
             _orderValidator = orderValidator;
+            _order = new Order();
         }
 
-        public OrderModel GetOrderData(Guid orderId)
+        public OrderModel GetOrderModel(Guid orderId)
         {
-            var order = _dbProvider.GetOrderById(orderId);
-            if(order == null)
+            FindOrder(orderId);
+            if (_order == null)
                 return null;
-            var dtoLines = new List<OrderLineModel>();
-            foreach (var line in order.Lines)
+
+            var dtoOrderLines = new List<OrderLineModel>();
+            foreach (var line in _order.Lines)
             {
                 var dtoLine = new OrderLineModel
                 {
                     Id = line.Id,
                     qty = line.qty
                 };
-                dtoLines.Add(dtoLine);
+                dtoOrderLines.Add(dtoLine);
             }
             return new OrderModel
             {
-                Id = order.Id,
-                Status = order.Status,
-                Created = order.Created,
-                Lines = dtoLines
+                Id = _order.Id,
+                Status = _order.Status,
+                Created = _order.Created,
+                Lines = dtoOrderLines
             };
         }
 
-        public OperationResult CreateOrder(NewOrder orderData)
+        public OperationResult CreateOrder(NewOrderModel orderModel)
         {
-            // Validate order data
             var result = new OperationResult();
-            var orderLinesValidator = _orderValidator.ValidateOrderLines(orderData.Lines, orderData.Id);
-
+    
+            var orderLinesValidator = _orderValidator.ValidateOrderLines(orderModel.Lines, orderModel.Id);
             if (orderLinesValidator.Validated == ValidationStatus.Invalid)
             {
                 result.Status = OperationStatus.Error;
@@ -54,50 +57,92 @@ namespace OrdersService.Business_layer
                 return result;
             }
 
-            var lines = new List<OrderLine>();
-            // Create OrderLines
-            foreach (var item in orderData.Lines)
-            {
-                var newLine = new OrderLine 
-                {   
-                    Id = item.Id, 
-                    qty = item.qty, 
-                    OrderId = orderData.Id 
-                };
-                lines.Add(newLine);
-            }
-            // Create Order
-            var order = new Order
-            {
-                Id = orderData.Id,
-                Created = DateTime.UtcNow,
-                Status = OrderStatus.New.ToString(),
-                Lines = lines
-            };
-
-            result.Status = _dbProvider.CreateOrder(order);
+            NewOrderByModel(orderModel);
+            
+            result.Status = _orderRepository.CreateOrder(_order);
             if (result.Status != OperationStatus.Success)
             {
-                result.ErrorMessage = $"DB Error while creating new order {order.Id}";
+                result.ErrorMessage = $"DB Error while creating new order {_order.Id}";
             }
-            return result;                        
+            return result;
         }
-        public OperationResult UpdateOrderData(Guid orderId, EditOrderModel orderData)
+        private void NewOrderByModel(NewOrderModel orderModel)
         {
-            // Validate order 
+            var orderLines = MapLinesWithModel(orderModel.Lines, orderModel.Id);
+
+            _order.Id = orderModel.Id;
+            _order.Created = DateTime.UtcNow;
+            _order.Status = OrderStatus.New.ToString();
+            _order.Lines = orderLines;
+        }
+        private List<OrderLine> MapLinesWithModel(List<OrderLineModel> listModel, Guid orderId)
+        {
+            var orderLines = new List<OrderLine>();
+
+            foreach (var item in listModel)
+            {
+                var newLine = new OrderLine
+                {
+                    Id = item.Id,
+                    qty = item.qty,
+                    OrderId = orderId
+                };
+                orderLines.Add(newLine);
+            }
+            return orderLines;
+        }
+
+        public OperationResult UpdateOrder(Guid orderId, EditOrderModel orderModel)
+        {
             var result = new OperationResult();
-            List<OrderLine>? linesToWrite;
-            var dbOrder = _dbProvider.GetOrderById(orderId);
-            if (dbOrder == null)
+
+            FindOrder(orderId);
+            if (_order == null)
             {
                 result.Status = OperationStatus.NotFound;
                 result.ErrorMessage = $"Order {orderId} not found";
                 return result;
             }
 
-            // Prepare dao    
+            var canEdit = _orderValidator.CanEditOrderLines(_order);
+            if (canEdit.Validated != ValidationStatus.Valid)
+            {
+                result.Status = OperationStatus.Error;
+                result.ErrorMessage = canEdit.ErrorMessage;
+                return result;
+            }
+            var orderLinesValidator = _orderValidator.ValidateOrderLines(orderModel.Lines, orderId);
+            if (orderLinesValidator.Validated != ValidationStatus.Valid)
+            {
+                result.Status = OperationStatus.Error;
+                result.ErrorMessage = orderLinesValidator.ErrorMessage;
+                return result;
+            }
+
+            var userLines = CreateLinesDbRecord(orderModel.Lines, orderId);
+            var isOrderLinesEdited = AnyDiffInLines(userLines, _order.Lines.ToList());
+            if (isOrderLinesEdited)
+            {
+                _order.Lines = userLines;
+            }
+
+            result.Status = _orderRepository.UpdateOrder(_order);
+            if (result.Status != OperationStatus.Success)
+            {
+                result.ErrorMessage = $"DB Error while updating order {orderId}";
+            }
+            return result;
+        }
+
+        private void FindOrder(Guid orderId)// ?
+        {
+            _order = _orderRepository.GetOrderById(orderId);
+        }
+
+        private List<OrderLine> CreateLinesDbRecord(List<OrderLineModel> linesModel, Guid orderId)
+        {  
             var userLines = new List<OrderLine>();
-            foreach (var line in orderData.Lines)
+            foreach (var line in linesModel)
             {
                 userLines.Add(new OrderLine
                 {
@@ -106,62 +151,24 @@ namespace OrdersService.Business_layer
                     OrderId = orderId
                 });
             }
-
-            // Validate order lines
-            var isOrderLinesEdited = _orderValidator.isEdited(userLines, dbOrder.Lines.ToList());
-            if (isOrderLinesEdited.Validated == ValidationStatus.UnequalLines)
-            {
-                var canEdit = _orderValidator.CanEditOrderLines(dbOrder);
-                if (canEdit.Validated != ValidationStatus.Valid)
-                {
-                    result.Status = OperationStatus.Error;
-                    result.ErrorMessage = canEdit.ErrorMessage;
-                    return result;
-                }
-
-                var orderLinesValidator = _orderValidator.ValidateOrderLines(orderData.Lines, orderId);
-                if (orderLinesValidator.Validated != ValidationStatus.Valid)
-                {
-                    result.Status = OperationStatus.Error;
-                    result.ErrorMessage = orderLinesValidator.ErrorMessage;
-                    return result;
-                }
-                linesToWrite = userLines;
-            }
-            else
-            {
-                // If changed only status use DB lines to avoid update
-                linesToWrite = dbOrder.Lines.ToList();
-            }
-
-            var order = new Order
-            {
-                Id = orderId,
-                Status = orderData.Status.ToString(),
-                Created = dbOrder.Created,
-                Lines = linesToWrite
-            };
-            // Update Order
-            result.Status = _dbProvider.UpdateOrder(order);
-            if (result.Status != OperationStatus.Success)
-            {
-                result.ErrorMessage = $"DB Error while updating order {orderId}";
-            }
-            return result;
+            return userLines;
         }
+        private bool AnyDiffInLines(List<OrderLine> requestLines, List<OrderLine> dbLines)
+        {
+            return !requestLines.OrderBy(e => e.Id).SequenceEqual(dbLines.OrderBy(e => e.Id));
+        }
+
         public OperationResult DeleteOrder(Guid orderId)
         {
-            // Validate order
             var result = new OperationResult();
 
-            var order = _dbProvider.GetOrderById(orderId);
-            if(order == null)
+            var order = _orderRepository.GetOrderById(orderId);
+            if (order == null)
             {
-                result.Status=OperationStatus.NotFound;
+                result.Status = OperationStatus.NotFound;
                 result.ErrorMessage = $"Order {orderId} not found";
                 return result;
             }
-
             var canDeleted = _orderValidator.CanDeleteOrder(order);
             if (canDeleted.Validated == ValidationStatus.Invalid)
             {
@@ -170,13 +177,12 @@ namespace OrdersService.Business_layer
                 return result;
             }
 
-            // Delete Order
-            result.Status = _dbProvider.DeleteOrder(orderId);
+            result.Status = _orderRepository.DeleteOrder(orderId);
             if (result.Status != OperationStatus.Success)
             {
                 result.ErrorMessage = $"DB Error while deleting order {orderId}";
             }
-            return result;         
+            return result;
         }
     }
     public class OperationResult
@@ -186,6 +192,7 @@ namespace OrdersService.Business_layer
         public OperationResult()
         {
             ErrorMessage = string.Empty;
+            Status = OperationStatus.Error;
         }
     }
 }

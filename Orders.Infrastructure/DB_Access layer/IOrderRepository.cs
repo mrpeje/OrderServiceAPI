@@ -1,5 +1,5 @@
-﻿using OrdersService.Context;
-using Orders.Domain;
+﻿using Orders.Domain;
+using OrdersService.Context;
 
 namespace OrdersService.DB_Access
 {

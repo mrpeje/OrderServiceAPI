@@ -1,6 +1,6 @@
-﻿using OrdersService.Context;
-using OrdersService.Interfaces;
-using Orders.Domain.Models;
+﻿using OrdersService.Interfaces;
+using OrdersService.Context;
+using OrdersService.Models;
 using Orders.Domain;
 
 namespace OrdersService.Business_layer.Validator
@@ -32,14 +32,6 @@ namespace OrdersService.Business_layer.Validator
                 result.Validated = ValidationStatus.CannotEditLines;
                 result.ErrorMessage = $"Order {orderData.Id} cannot be edited due to status";
             }
-            return result;
-        }
-
-        public ValidationResult isEdited(List<OrderLine> requestLines, List<OrderLine> dbLines)
-        {
-            var result = new ValidationResult();
-            if (!requestLines.OrderBy(e => e.Id).SequenceEqual(dbLines.OrderBy(e => e.Id)))
-                result.Validated = ValidationStatus.UnequalLines;
             return result;
         }
 
@@ -81,8 +73,7 @@ namespace OrdersService.Business_layer.Validator
     {
         Invalid,
         Valid,
-        CannotEditLines,
-        UnequalLines
+        CannotEditLines
     }
 
 }

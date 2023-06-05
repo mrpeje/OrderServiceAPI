@@ -1,6 +1,4 @@
-﻿using Orders.Domain.Models;
-
-namespace OrdersService.Context
+﻿namespace OrdersService.Context
 {
     public class Order
     {

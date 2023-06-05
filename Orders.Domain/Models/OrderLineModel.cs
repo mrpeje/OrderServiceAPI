@@ -1,4 +1,4 @@
-﻿namespace Orders.Domain.Models
+﻿namespace OrdersService.Context
 {
     public class OrderLineModel
     {
