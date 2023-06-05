@@ -23,8 +23,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Orders.Application\Orders.Application.csproj" />
-    <ProjectReference Include="..\Orders.Domain\Orders.Domain.csproj" />
-    <ProjectReference Include="..\OrderService.DAL\Orders.Infrasctructure.csproj" />
   </ItemGroup>
 
 </Project>

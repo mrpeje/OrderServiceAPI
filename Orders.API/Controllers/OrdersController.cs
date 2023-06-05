@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Orders.Domain;
+using Orders.Domain.Models;
 using OrdersService.Interfaces;
-using OrdersService.Models;
 
 namespace OrdersService.Controllers
 {
