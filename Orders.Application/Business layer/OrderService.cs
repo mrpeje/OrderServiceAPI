@@ -22,10 +22,20 @@ namespace OrdersService.Business_layer
 
         public OrderModel GetOrderModel(Guid orderId)
         {
-            FindOrder(orderId);
-            if (_order == null)
-                return null;
+            FindAndInitOrder(orderId);
 
+            var dtoOrderLines = MapLinesModelWithDb(); 
+            
+            return new OrderModel
+            {
+                Id = _order.Id,
+                Status = _order.Status,
+                Created = _order.Created,
+                Lines = dtoOrderLines
+            };
+        }
+        private List<OrderLineModel> MapLinesModelWithDb()
+        {
             var dtoOrderLines = new List<OrderLineModel>();
             foreach (var line in _order.Lines)
             {
@@ -36,13 +46,7 @@ namespace OrdersService.Business_layer
                 };
                 dtoOrderLines.Add(dtoLine);
             }
-            return new OrderModel
-            {
-                Id = _order.Id,
-                Status = _order.Status,
-                Created = _order.Created,
-                Lines = dtoOrderLines
-            };
+            return dtoOrderLines;
         }
 
         public OperationResult CreateOrder(NewOrderModel orderModel)
@@ -68,14 +72,14 @@ namespace OrdersService.Business_layer
         }
         private void NewOrderByModel(NewOrderModel orderModel)
         {
-            var orderLines = MapLinesWithModel(orderModel.Lines, orderModel.Id);
+            var orderLines = MapDbLinesWithModel(orderModel.Lines, orderModel.Id);
 
             _order.Id = orderModel.Id;
             _order.Created = DateTime.UtcNow;
             _order.Status = OrderStatus.New.ToString();
             _order.Lines = orderLines;
         }
-        private List<OrderLine> MapLinesWithModel(List<OrderLineModel> listModel, Guid orderId)
+        private List<OrderLine> MapDbLinesWithModel(List<OrderLineModel> listModel, Guid orderId)
         {
             var orderLines = new List<OrderLine>();
 
@@ -96,8 +100,8 @@ namespace OrdersService.Business_layer
         {
             var result = new OperationResult();
 
-            FindOrder(orderId);
-            if (_order == null)
+            FindAndInitOrder(orderId);
+            if (_order.Id == Guid.Empty)
             {
                 result.Status = OperationStatus.NotFound;
                 result.ErrorMessage = $"Order {orderId} not found";
@@ -134,11 +138,6 @@ namespace OrdersService.Business_layer
             return result;
         }
 
-        private void FindOrder(Guid orderId)// ?
-        {
-            _order = _orderRepository.GetOrderById(orderId);
-        }
-
         private List<OrderLine> CreateLinesDbRecord(List<OrderLineModel> linesModel, Guid orderId)
         {  
             var userLines = new List<OrderLine>();
@@ -162,14 +161,14 @@ namespace OrdersService.Business_layer
         {
             var result = new OperationResult();
 
-            var order = _orderRepository.GetOrderById(orderId);
-            if (order == null)
+            FindAndInitOrder(orderId);
+            if (_order.Id == Guid.Empty)
             {
                 result.Status = OperationStatus.NotFound;
                 result.ErrorMessage = $"Order {orderId} not found";
                 return result;
             }
-            var canDeleted = _orderValidator.CanDeleteOrder(order);
+            var canDeleted = _orderValidator.CanDeleteOrder(_order);
             if (canDeleted.Validated == ValidationStatus.Invalid)
             {
                 result.Status = OperationStatus.Error;
@@ -183,6 +182,15 @@ namespace OrdersService.Business_layer
                 result.ErrorMessage = $"DB Error while deleting order {orderId}";
             }
             return result;
+        }
+        private void FindAndInitOrder(Guid orderId)// ?
+        {
+            _order = _orderRepository.GetOrderById(orderId);
+            if(_order == null)
+            {
+                _order = new Order();
+                _order.Id = Guid.Empty;
+            }
         }
     }
     public class OperationResult

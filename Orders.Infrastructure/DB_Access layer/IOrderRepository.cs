@@ -8,6 +8,6 @@ namespace OrdersService.DB_Access
         public OperationStatus CreateOrder(Order order);
         public OperationStatus UpdateOrder(Order order);
         public OperationStatus DeleteOrder(Guid id);
-        public Order GetOrderById(Guid id);
+        public Order? GetOrderById(Guid id);
     }
 }

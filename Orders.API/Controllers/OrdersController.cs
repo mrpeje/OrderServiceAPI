@@ -19,7 +19,7 @@ namespace OrdersService.Controllers
         public ActionResult<OrderModel> GetOrder(Guid id)
         {
             var order = _orderService.GetOrderModel(id);
-            if (order == null)
+            if (order.Id == Guid.Empty)
                 return StatusCode(404, "Not found");
             return order;
         }
@@ -46,7 +46,6 @@ namespace OrdersService.Controllers
         public ActionResult<OrderModel> CreateOrder(NewOrderModel order)
         {
             var operationResult = _orderService.CreateOrder(order);
-
             if (operationResult.Status == OperationStatus.Success)
             {
                 return _orderService.GetOrderModel(order.Id);
