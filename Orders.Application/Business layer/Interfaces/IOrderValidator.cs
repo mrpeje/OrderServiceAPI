@@ -1,5 +1,6 @@
 ﻿using OrdersService.Business_layer.Validator;
 using OrdersService.Context;
+using OrdersService.Models;
 
 namespace OrdersService.Interfaces
 {

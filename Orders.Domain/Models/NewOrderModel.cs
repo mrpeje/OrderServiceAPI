@@ -1,6 +1,4 @@
-﻿using OrdersService.Context;
-
-namespace OrdersService.Models
+﻿namespace OrdersService.Models
 {
     public class NewOrderModel
     {
