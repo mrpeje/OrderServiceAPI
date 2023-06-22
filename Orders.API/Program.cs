@@ -4,7 +4,7 @@ using OrdersService.DB_Access;
 using OrdersService.Business_layer.Validator;
 using OrdersService.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,8 +17,12 @@ builder.Services.AddSwaggerGen();
 
 // Add dbContext to di container
 
+
 builder.Services.AddDbContext<OrdersServiceContext>(option =>
-      option.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    option.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
+});
+
 
 builder.Services.AddScoped<IOrderRepository, DbOrderRepository>();
 builder.Services.AddScoped<IOrderService, OrderService>();
@@ -34,14 +38,14 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-
 app.MapControllers();
 
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<OrdersServiceContext>();
-    db.Database.Migrate();
+    //db.Database.Migrate();
 }
 
 app.Run();
 public partial class Program { }
+
