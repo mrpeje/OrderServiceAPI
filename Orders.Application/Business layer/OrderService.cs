@@ -190,6 +190,7 @@ namespace OrdersService.Business_layer
             {
                 _order = new Order();
                 _order.Id = Guid.Empty;
+                _order.Lines = new List<OrderLine>();
             }
         }
     }
