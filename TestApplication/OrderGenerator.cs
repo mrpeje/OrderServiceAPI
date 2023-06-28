@@ -35,5 +35,12 @@ namespace TestApplication
             newOrderModel.Lines = new List<OrderLineModel>();
             return newOrderModel;
         }
+
+        internal EditOrderModel EditOrderModel()
+        {
+            var editOrderModel = new EditOrderModel();
+            editOrderModel.Lines = new List<OrderLineModel>();
+            return editOrderModel;
+        }
     }
 }

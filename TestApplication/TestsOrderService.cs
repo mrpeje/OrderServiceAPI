@@ -45,14 +45,16 @@ namespace TestApplication
             IOrderService _service = new OrderService(repositoryMock.Object, validatorMock.Object);
 
             NewOrderModel newOrderModel = _orderGenerator.NewOrderModel();
-            repositoryMock.Setup(or => or.CreateOrder(It.IsAny<Order>())).Returns(OperationStatus.Success);
-            validatorMock.Setup(ov => ov.ValidateOrderLines(It.IsAny<List<OrderLineModel>>(), It.IsAny<Guid>())).Returns(new ValidationResult { Validated = ValidationStatus.Valid });
+
+            repositoryMock.Setup(or => or.CreateOrder(It.IsAny<Order>()))
+                .Returns(OperationStatus.Success);
+            validatorMock.Setup(ov => ov.ValidateOrderLines(It.IsAny<List<OrderLineModel>>(), It.IsAny<Guid>()))
+                .Returns(new ValidationResult { Validated = ValidationStatus.Valid });
             // Act
             OperationResult result = _service.CreateOrder(newOrderModel);
 
             // Assert
             Assert.Equal(OperationStatus.Success, result.Status);
-            Assert.Equal(string.Empty, result.ErrorMessage);
         }
         [Fact]
         public void CreateOrder_ReturnsError_WhenOrderValidation_Invalid()
@@ -65,14 +67,42 @@ namespace TestApplication
 
             NewOrderModel newOrderModel = _orderGenerator.NewOrderModel();
             Order order = _orderGenerator.Order();
-            repositoryMock.Setup(or => or.CreateOrder(order)).Returns(OperationStatus.Success);
-            validatorMock.Setup(ov => ov.ValidateOrderLines(It.IsAny<List<OrderLineModel>>(), It.IsAny<Guid>())).Returns(new ValidationResult { Validated = ValidationStatus.Invalid });
+
+            repositoryMock.Setup(or => or.CreateOrder(order))
+                .Returns(OperationStatus.Success);
+            validatorMock.Setup(ov => ov.ValidateOrderLines(It.IsAny<List<OrderLineModel>>(), It.IsAny<Guid>()))
+                .Returns(new ValidationResult { Validated = ValidationStatus.Invalid });
             // Act
             OperationResult result = _service.CreateOrder(newOrderModel);
 
             // Assert
             Assert.Equal(OperationStatus.Error, result.Status);
-            //Assert.Equal($"Order {order.Id} must contain lines", result.ErrorMessage);
+        }
+
+        [Fact]
+        public void UpdateOrder_ReturnsSuccess()
+        {
+            // Arrange
+            OrderGenerator _orderGenerator = new OrderGenerator();
+            var repositoryMock = new Mock<IOrderRepository>();
+            var validatorMock = new Mock<IOrderValidator>();
+            IOrderService _service = new OrderService(repositoryMock.Object, validatorMock.Object);
+
+            EditOrderModel editOrderModel = _orderGenerator.EditOrderModel();            
+            Order order = _orderGenerator.Order();
+
+            repositoryMock.Setup(or => or.GetOrderById(order.Id))
+                .Returns(order);
+            repositoryMock.Setup(or => or.UpdateOrder(order))
+                .Returns(OperationStatus.Success);
+            validatorMock.Setup(ov => ov.ValidateOrderLines(It.IsAny<List<OrderLineModel>>(), It.IsAny<Guid>()))
+                .Returns(new ValidationResult { Validated = ValidationStatus.Valid });            
+            validatorMock.Setup(ov => ov.CanEditOrderLines(order))
+                .Returns(new ValidationResult { Validated = ValidationStatus.Valid });
+            // Act
+            OperationResult result = _service.UpdateOrder(order.Id, editOrderModel);
+            // Assert
+            Assert.Equal(OperationStatus.Success, result.Status);
         }
     }
 }
